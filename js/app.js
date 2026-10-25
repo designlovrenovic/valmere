@@ -122,24 +122,32 @@ class Component extends DCLogic {
     this._handsSet = true;
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const svgs = Array.prototype.slice.call(root.querySelectorAll('.w-hands, .t-watch svg'));
-    const setFrom = (svg) => {
+    svgs.forEach((svg) => svg.classList.add('hands-wait'));
+    const ease = (t) => (t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2);
+    const run = (svg) => {
+      const hands = svg.querySelectorAll('.wh-i');
+      svg.classList.remove('hands-wait');
+      if (hands.length < 3) return;
+      const pivot = svg.classList.contains('w-hands') ? ' 172 272)' : ' 150 247)';
       const now = new Date();
       const sec = now.getSeconds() + now.getMilliseconds() / 1000;
       const min = now.getMinutes() + sec / 60;
       const hr = (now.getHours() % 12) + min / 60;
-      svg.style.setProperty('--fs', (-sec * 6 - 360).toFixed(2) + 'deg');
-      svg.style.setProperty('--fm', (-min * 6 - 360).toFixed(2) + 'deg');
-      svg.style.setProperty('--fh', (-hr * 30 - 360).toFixed(2) + 'deg');
+      const from = [-hr * 30 - 360, -min * 6 - 360, -sec * 6 - 360];
+      const set = (k) => {
+        for (let i = 0; i < 3; i++) hands[i].setAttribute('transform', 'rotate(' + (from[i] * k).toFixed(2) + pivot);
+      };
+      set(1);
+      const delay = svg.closest('.hero-watch') ? 500 : 150;
+      const dur = 2600;
+      const t0 = performance.now();
+      const step = (t) => {
+        const p = Math.min(1, Math.max(0, (t - t0 - delay) / dur));
+        if (p < 1) { set(1 - ease(p)); requestAnimationFrame(step); return; }
+        for (let i = 0; i < 3; i++) hands[i].removeAttribute('transform');
+      };
+      requestAnimationFrame(step);
     };
-    const run = (svg) => {
-      setFrom(svg);
-      svg.getBoundingClientRect();
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        svg.classList.remove('hand-pre');
-        svg.classList.add('hand-run');
-      }));
-    };
-    svgs.forEach((svg) => { setFrom(svg); svg.classList.add('hand-pre'); });
     if (typeof IntersectionObserver === 'undefined') { svgs.forEach(run); return; }
     this._hio = new IntersectionObserver((entries) => {
       entries.forEach((en) => {
