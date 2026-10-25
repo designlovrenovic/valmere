@@ -329,6 +329,8 @@ class Component extends DCLogic {
     };
     H.cPrev = () => { const s = this.st(); this.setState({ cIdx: mod((s.cIdx || 0) - 1, COL.length), cCycle: (s.cCycle || 0) + 1 }); };
     H.cNext = () => { const s = this.st(); this.setState({ cIdx: mod((s.cIdx || 0) + 1, COL.length), cCycle: (s.cCycle || 0) + 1 }); };
+    H.menuOpen = () => this.setState({ mOpen: true });
+    H.menuClose = () => this.setState({ mOpen: false });
     H.fSubmit = (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ fDone: true }); };
     this._h = H;
     return H;
@@ -572,6 +574,9 @@ class Component extends DCLogic {
       cInCls: cCyc % 2 ? 'in-b' : 'in-a',
       cWCls: cCyc % 2 ? 'w-b' : 'w-a',
       fDone: !!s.fDone,
+      mOpen: !!s.mOpen,
+      mHidden: !s.mOpen,
+      mMenuCls: s.mOpen ? 'is-open' : '',
       fShowForm: !s.fDone,
       tParts: tParts,
       tOpts: tOpts,
