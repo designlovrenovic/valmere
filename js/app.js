@@ -121,42 +121,28 @@ class Component extends DCLogic {
     if (!root || this._handsSet) return;
     this._handsSet = true;
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const svgs = Array.prototype.slice.call(root.querySelectorAll('.w-hands, .t-watch svg'));
-    svgs.forEach((svg) => svg.classList.add('hands-wait'));
+    const svg = root.querySelector('.hero-watch .w-hands');
+    const hands = svg ? svg.querySelectorAll('.wh-i') : [];
+    if (hands.length < 3) return;
     const ease = (t) => (t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2);
-    const run = (svg) => {
-      const hands = svg.querySelectorAll('.wh-i');
-      svg.classList.remove('hands-wait');
-      if (hands.length < 3) return;
-      const pivot = svg.classList.contains('w-hands') ? ' 172 272)' : ' 150 247)';
-      const now = new Date();
-      const sec = now.getSeconds() + now.getMilliseconds() / 1000;
-      const min = now.getMinutes() + sec / 60;
-      const hr = (now.getHours() % 12) + min / 60;
-      const from = [-hr * 30 - 360, -min * 6 - 360, -sec * 6 - 360];
-      const set = (k) => {
-        for (let i = 0; i < 3; i++) hands[i].setAttribute('transform', 'rotate(' + (from[i] * k).toFixed(2) + pivot);
-      };
-      set(1);
-      const delay = svg.closest('.hero-watch') ? 500 : 150;
-      const dur = 2600;
-      const t0 = performance.now();
-      const step = (t) => {
-        const p = Math.min(1, Math.max(0, (t - t0 - delay) / dur));
-        if (p < 1) { set(1 - ease(p)); requestAnimationFrame(step); return; }
-        for (let i = 0; i < 3; i++) hands[i].removeAttribute('transform');
-      };
-      requestAnimationFrame(step);
+    const now = new Date();
+    const sec = now.getSeconds() + now.getMilliseconds() / 1000;
+    const min = now.getMinutes() + sec / 60;
+    const hr = (now.getHours() % 12) + min / 60;
+    const from = [-hr * 30 - 360, -min * 6 - 360, -sec * 6 - 360];
+    const set = (k) => {
+      for (let i = 0; i < 3; i++) hands[i].setAttribute('transform', 'rotate(' + (from[i] * k).toFixed(2) + ' 172 272)');
     };
-    if (typeof IntersectionObserver === 'undefined') { svgs.forEach(run); return; }
-    this._hio = new IntersectionObserver((entries) => {
-      entries.forEach((en) => {
-        if (!en.isIntersecting) return;
-        this._hio.unobserve(en.target);
-        run(en.target);
-      });
-    }, { threshold: 0.3 });
-    svgs.forEach((svg) => this._hio.observe(svg));
+    set(1);
+    const delay = 500;
+    const dur = 2600;
+    const t0 = performance.now();
+    const step = (t) => {
+      const p = Math.min(1, Math.max(0, (t - t0 - delay) / dur));
+      if (p < 1) { set(1 - ease(p)); requestAnimationFrame(step); return; }
+      for (let i = 0; i < 3; i++) hands[i].removeAttribute('transform');
+    };
+    requestAnimationFrame(step);
   }
 
   componentWillUnmount() {
