@@ -488,7 +488,7 @@ class Component extends DCLogic {
       : { x: 1261, y: 243, s: 1, cls: 'is-rest' };
 
     /* ---- journal ---- */
-    const jOpen = s.jOpen === undefined ? 1 : s.jOpen;
+    const jOpen = s.jOpen === undefined ? 0 : s.jOpen;
     const jPanels = JOUR.map((p, i) => ({
       num: pad2(i + 1),
       label: p.label, cat: p.cat, title: p.title, text: p.text, img: p.img, alt: p.alt,
@@ -496,7 +496,7 @@ class Component extends DCLogic {
       isOpen: i === jOpen,
       hidden: i !== jOpen,
       aria: 'Open article ' + (i + 1) + ': ' + p.title,
-      open: () => { const cur = this.st().jOpen === undefined ? 1 : this.st().jOpen; if (cur !== i) this.setState({ jOpen: i }); }
+      open: () => { const cur = this.st().jOpen === undefined ? 0 : this.st().jOpen; if (cur !== i) this.setState({ jOpen: i }); }
     }));
 
     /* ---- hero hotspots ---- */
@@ -559,8 +559,8 @@ class Component extends DCLogic {
       kPulseCls: s.kIdx === undefined ? '' : (mod(kIdx, 2) ? 'pulse-b' : 'pulse-a'),
       kProgOff: (100 - kFill * 100).toFixed(2),
       kProgAnim: kDragging || !auto || !s.kSeen ? 'none' : (kCycle % 2 ? 'ltProgB' : 'ltProgA'),
-      kProgDur: (secs + 1) + 's',
-      kProgDelay: (-(s.kResume || 0) * (secs + 1)).toFixed(2) + 's',
+      kProgDur: ((secs + 1) * 0.7).toFixed(2) + 's',
+      kProgDelay: (-(s.kResume || 0) * (secs + 1) * 0.7).toFixed(2) + 's',
       kProgPlay: s.kVis ? 'running' : 'paused',
       kSlides: kSlides,
       kCur: kCur,
