@@ -49,8 +49,8 @@ const bgOf = (tint) => 'radial-gradient(circle at 50% 42%, ' + mix(tint, '#fffff
 
 const PARTS = [
   { label: 'Strap', opts: [
-    { label: 'Green', color: '#1D7C68' },
     { label: 'Brown', color: '#552A17' },
+    { label: 'Green', color: '#1D7C68' },
     { label: 'Blue', color: '#20697A' },
     { label: 'Black', color: '#343434' }
   ] },
@@ -70,10 +70,10 @@ const PARTS = [
 
 const PRESETS = [
   [3, 3, 2],
-  [0, 1, 1],
-  [1, 0, 0],
+  [1, 1, 1],
+  [0, 0, 0],
   [2, 2, 1],
-  [1, 3, 3]
+  [0, 3, 3]
 ];
 
 const CRAFT = [
@@ -113,11 +113,48 @@ class Component extends DCLogic {
     }
     this.measure();
     this.observeK();
+    this.introHands();
+  }
+
+  introHands() {
+    const root = this._root;
+    if (!root || this._handsSet) return;
+    this._handsSet = true;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const svgs = Array.prototype.slice.call(root.querySelectorAll('.w-hands, .t-watch svg'));
+    const setFrom = (svg) => {
+      const now = new Date();
+      const sec = now.getSeconds() + now.getMilliseconds() / 1000;
+      const min = now.getMinutes() + sec / 60;
+      const hr = (now.getHours() % 12) + min / 60;
+      svg.style.setProperty('--fs', (-sec * 6 - 360).toFixed(2) + 'deg');
+      svg.style.setProperty('--fm', (-min * 6 - 360).toFixed(2) + 'deg');
+      svg.style.setProperty('--fh', (-hr * 30 - 360).toFixed(2) + 'deg');
+    };
+    const run = (svg) => {
+      setFrom(svg);
+      svg.getBoundingClientRect();
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        svg.classList.remove('hand-pre');
+        svg.classList.add('hand-run');
+      }));
+    };
+    svgs.forEach((svg) => { setFrom(svg); svg.classList.add('hand-pre'); });
+    if (typeof IntersectionObserver === 'undefined') { svgs.forEach(run); return; }
+    this._hio = new IntersectionObserver((entries) => {
+      entries.forEach((en) => {
+        if (!en.isIntersecting) return;
+        this._hio.unobserve(en.target);
+        run(en.target);
+      });
+    }, { threshold: 0.3 });
+    svgs.forEach((svg) => this._hio.observe(svg));
   }
 
   componentWillUnmount() {
     this._alive = false;
     if (this._io) this._io.disconnect();
+    if (this._hio) this._hio.disconnect();
     window.removeEventListener('resize', this._onResize);
     if (this._ro) this._ro.disconnect();
     if (this._raf) cancelAnimationFrame(this._raf);
@@ -389,7 +426,7 @@ class Component extends DCLogic {
 
     /* ---- tailor ---- */
     const tPart = s.tPart || 0;
-    const sel = s.tSel || [1, 0, 0];
+    const sel = s.tSel || [0, 0, 0];
     const tParts = PARTS.map((pt, i) => {
       const th = 198.5 - i * 18;
       return {
@@ -418,7 +455,7 @@ class Component extends DCLogic {
         icGear: on && o.icon === 'gear',
         pick: () => {
           const st = this.st();
-          const cur = (st.tSel || [1, 0, 0]).slice();
+          const cur = (st.tSel || [0, 0, 0]).slice();
           const p = st.tPart || 0;
           if (cur[p] === j) return;
           cur[p] = j;
