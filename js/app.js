@@ -114,6 +114,29 @@ class Component extends DCLogic {
     this.measure();
     this.observeK();
     this.introHands();
+    this._onScroll = () => this.onScrollM();
+    window.addEventListener('scroll', this._onScroll, { passive: true });
+  }
+
+  onScrollM() {
+    if (this._sraf) return;
+    this._sraf = requestAnimationFrame(() => {
+      this._sraf = null;
+      const s = this.st();
+      const y = window.scrollY || window.pageYOffset || 0;
+      const last = this._lastY || 0;
+      this._lastY = y;
+      if (!s.mobile) { if (s.mBar) this.setState({ mBar: false }); return; }
+      let on = !!s.mBar;
+      if (y < 420) on = false;
+      else if (y < last - 4) on = true;
+      else if (y > last + 4) on = false;
+      if (on !== !!s.mBar) this.setState({ mBar: on });
+      if (this._mBar) {
+        const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+        this._mBar.style.setProperty('--p', Math.min(1, y / max).toFixed(4));
+      }
+    });
   }
 
   introHands() {
@@ -150,6 +173,7 @@ class Component extends DCLogic {
     if (this._io) this._io.disconnect();
     if (this._hio) this._hio.disconnect();
     window.removeEventListener('resize', this._onResize);
+    window.removeEventListener('scroll', this._onScroll);
     if (this._ro) this._ro.disconnect();
     if (this._raf) cancelAnimationFrame(this._raf);
   }
@@ -329,6 +353,21 @@ class Component extends DCLogic {
     };
     H.cPrev = () => { const s = this.st(); this.setState({ cIdx: mod((s.cIdx || 0) - 1, COL.length), cCycle: (s.cCycle || 0) + 1 }); };
     H.cNext = () => { const s = this.st(); this.setState({ cIdx: mod((s.cIdx || 0) + 1, COL.length), cCycle: (s.cCycle || 0) + 1 }); };
+    H.cSwDown = (e) => {
+      if (e.button !== undefined && e.button !== 0) return;
+      if (e.target && e.target.closest && e.target.closest('button, a')) return;
+      this._csw = { x: e.clientX, y: e.clientY };
+    };
+    H.cSwUp = (e) => {
+      const d = this._csw;
+      this._csw = null;
+      if (!d) return;
+      const dx = e.clientX - d.x;
+      const dy = e.clientY - d.y;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) (dx < 0 ? H.cNext : H.cPrev)();
+    };
+    H.cSwCancel = () => { this._csw = null; };
+    H.setMBar = (el) => { this._mBar = el; };
     H.menuOpen = () => this.setState({ mOpen: true });
     H.menuClose = () => this.setState({ mOpen: false });
     H.fSubmit = (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ fDone: true }); };
@@ -364,7 +403,8 @@ class Component extends DCLogic {
     const nN = NEW.length;
     const nIdx = s.nIdx || 0;
     const nDragging = !!s.nDragging;
-    const nPos = nIdx - (nDragging ? (s.nDrag || 0) / N_STEP : 0);
+    const nStep = mobile ? 360 : N_STEP;
+    const nPos = nIdx - (nDragging ? (s.nDrag || 0) / nStep : 0);
     if (!this._day) this._day = new Date().getDate();
     const wDay = String(this._day);
     const clk = this.clock();
@@ -382,7 +422,7 @@ class Component extends DCLogic {
         day: wDay,
         wh: WH[it.img],
         ck: clk,
-        tf: 'translateX(' + (rel * N_STEP).toFixed(2) + 'px) scale(' + sc.toFixed(4) + ')',
+        tf: 'translateX(' + (rel * nStep).toFixed(2) + 'px) scale(' + sc.toFixed(4) + ')',
         op: op.toFixed(3),
         zi: String(10 - Math.round(a * 2)),
         ry: tilt ? (clamp((s.nCur.x - 720) / 700, -1, 1) * 7).toFixed(2) : 0,
@@ -415,7 +455,15 @@ class Component extends DCLogic {
         ref: p.ref, model: p.model, price: p.price, img: p.img, bg: bgOf(p.tint), wh: WH[p.img], ck: clk, hasDate: dated(p.img), day: wDay,
         aria: 'Show ' + p.ref + ' ' + p.model,
         cls: cCyc % 2 ? 'p-b' : 'p-a',
-        pick: () => { const st = this.st(); this.setState({ cIdx: j, cCycle: (st.cCycle || 0) + 1 }); }
+        pick: (e) => {
+          const st = this.st();
+          this.setState({ cIdx: j, cCycle: (st.cCycle || 0) + 1 });
+          if (st.mobile && e && e.currentTarget && e.currentTarget.closest) {
+            const sec = e.currentTarget.closest('.s-col');
+            const card = sec && sec.querySelector('.cx-card');
+            if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
       };
     });
     const cSegs = COL.map((x, i) => ({ cls: i === cIdx ? 'is-on' : (i < cIdx ? 'is-past' : '') }));
@@ -529,15 +577,26 @@ class Component extends DCLogic {
       isOpen: i === jOpen,
       hidden: i !== jOpen,
       aria: 'Open article ' + (i + 1) + ': ' + p.title,
-      open: () => { const cur = this.st().jOpen === undefined ? 0 : this.st().jOpen; if (cur !== i) this.setState({ jOpen: i }); }
+      open: (e) => {
+        const st = this.st();
+        if (st.mobile && e && e.type === 'mouseenter') return;
+        const cur = st.jOpen === undefined ? 0 : st.jOpen;
+        if (cur === i) return;
+        this.setState({ jOpen: i });
+        if (st.mobile && e && e.currentTarget && e.currentTarget.closest) {
+          const pan = e.currentTarget.closest('.jx-pan');
+          setTimeout(() => { if (pan && pan.scrollIntoView) pan.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 80);
+        }
+      }
     }));
 
     /* ---- hero hotspots ---- */
     const hAct = s.hSpot === undefined ? 0 : s.hSpot;
+    const artW = Math.min(w, 640) - 40;
     const hSpots = HERO_SPOTS.map((p, i) => ({
       label: p.label,
-      x: p.x,
-      y: p.y,
+      x: mobile ? Math.round(artW / 2 - 113 + (p.x - 670) / 360 * 236) : p.x,
+      y: mobile ? Math.round(6 + (p.y - 204) / 572 * 375) : p.y,
       on: i === hAct,
       cls: i === hAct ? 'is-on' : '',
       aria: 'Show ' + p.label.toLowerCase() + ' details',
@@ -577,6 +636,8 @@ class Component extends DCLogic {
       mOpen: !!s.mOpen,
       mHidden: !s.mOpen,
       mMenuCls: s.mOpen ? 'is-open' : '',
+      mBarCls: s.mBar && mobile ? 'is-on' : '',
+      mBarHidden: !(s.mBar && mobile),
       fShowForm: !s.fDone,
       tParts: tParts,
       tOpts: tOpts,
