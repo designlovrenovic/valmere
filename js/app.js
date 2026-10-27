@@ -113,6 +113,7 @@ class Component extends DCLogic {
     }
     this.measure();
     this.observeK();
+    this.observeN();
     this.introHands();
     this._onScroll = () => this.onScrollM();
     window.addEventListener('scroll', this._onScroll, { passive: true });
@@ -171,11 +172,29 @@ class Component extends DCLogic {
   componentWillUnmount() {
     this._alive = false;
     if (this._io) this._io.disconnect();
+    if (this._nio) this._nio.disconnect();
     if (this._hio) this._hio.disconnect();
     window.removeEventListener('resize', this._onResize);
     window.removeEventListener('scroll', this._onScroll);
     if (this._ro) this._ro.disconnect();
     if (this._raf) cancelAnimationFrame(this._raf);
+  }
+
+  observeN() {
+    const el = this._nSec;
+    if (!el || this._nioEl === el) return;
+    if (this._nio) { this._nio.disconnect(); this._nio = null; }
+    this._nioEl = el;
+    if (typeof IntersectionObserver === 'undefined') { this.setState({ nSeen: true, nVis: true }); return; }
+    const io = new IntersectionObserver((entries) => {
+      const en = entries[entries.length - 1];
+      const vis = en.isIntersecting && en.intersectionRatio >= 0.35;
+      const s = this.st();
+      if (vis && !s.nSeen) this.setState({ nSeen: true, nVis: true, nIdx: 0, nCycle: (s.nCycle || 0) + 1 });
+      else if (vis !== !!s.nVis) this.setState({ nVis: vis });
+    }, { threshold: [0, 0.35, 0.6] });
+    io.observe(el);
+    this._nio = io;
   }
 
   observeK() {
@@ -315,6 +334,7 @@ class Component extends DCLogic {
     H.setKArt = (el) => { this._kArt = el; };
     H.setKProg = (el) => { this._kProg = el; };
     H.setKSec = (el) => { this._kSec = el; if (el && this._alive) this.observeK(); };
+    H.setNSec = (el) => { this._nSec = el; if (el && this._alive) this.observeN(); };
     H.n = this.drag('n', () => this._nArt, N_STEP, (steps, dx, d) => {
       if (!steps && d && Math.abs(dx || 0) < 6) {
         if (d.x0 < 470) steps = -1;
@@ -433,12 +453,14 @@ class Component extends DCLogic {
     const nCur = s.nCur
       ? { x: s.nCur.x.toFixed(1), y: s.nCur.y.toFixed(1), s: nDragging ? 0.84 : 1, cls: 'is-follow' + (s.nUi ? ' is-ui' : '') }
       : { x: 300, y: 1039, s: 1, cls: 'is-rest' };
+    const nRun = !nDragging && !!s.nVis;
     const nPages = NEW.map((it, i) => ({
       num: pad2(i + 1),
       on: i === nIdx,
       cls: i === nIdx ? 'is-on' : '',
       aria: 'Show ' + it.name + ' ' + it.ref,
-      anim: i === nIdx && !nDragging && auto ? (nCycle % 2 ? 'ltBarB' : 'ltBarA') : 'none',
+      anim: i === nIdx && auto ? (nCycle % 2 ? 'ltBarB' : 'ltBarA') : 'none',
+      play: nRun ? 'running' : 'paused',
       dur: secs + 's',
       pick: () => { const st = this.st(); if ((st.nIdx || 0) !== i) this.setState({ nIdx: i, nCycle: (st.nCycle || 0) + 1 }); }
     }));
@@ -616,7 +638,8 @@ class Component extends DCLogic {
       nCls: nDragging ? 'is-drag' : '',
       nMeta: NEW[nIdx],
       nMetaCls: nCycle % 2 ? 'meta-b' : 'meta-a',
-      ringAnim: nDragging || !auto ? 'none' : (nCycle % 2 ? 'ltRingB' : 'ltRingA'),
+      ringAnim: !auto ? 'none' : (nCycle % 2 ? 'ltRingB' : 'ltRingA'),
+      ringPlay: nRun ? 'running' : 'paused',
       ringDur: secs + 's',
       nCur: nCur,
       nPages: nPages,
