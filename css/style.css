@@ -29,8 +29,8 @@ a{color:#D0E5FF}a:hover{color:#ffffff}
 @media (hover:hover) and (pointer:fine){.lt:not(.is-m) .drag-zone .n-pager button,.lt:not(.is-m) .drag-zone .n-view{cursor:pointer}}
 
 /* ---------- HERO ---------- */
-.s-hero{background:var(--navy)}
-.hero-stage{height:1014px;background:radial-gradient(1100px 760px at 842px 476px,#2a4260 0%,#203248 62%)}
+.s-hero{background:radial-gradient(1100px 760px at calc(50% + 122px) 476px,#2a4260 0%,#203248 62%) var(--navy)}
+.hero-stage{height:1014px}
 .nav{position:absolute;left:0;top:0;width:100%;height:104px;z-index:5}
 .logo{position:absolute;left:108px;top:32px;display:flex;align-items:center;gap:14px;color:var(--ice);text-decoration:none}
 .logo-mark{display:block;flex:none;overflow:visible}
@@ -463,6 +463,7 @@ a{color:#D0E5FF}a:hover{color:#ffffff}
 .m-social a{font:400 13px/1 Poppins,Arial,sans-serif;color:#A2A5AA;text-decoration:none}
 
 /* hero: title, watch, text, buttons, specs */
+.is-m .s-hero{background:radial-gradient(560px 520px at 50% 430px,#2a4260 0%,#203248 70%) var(--navy)}
 .is-m .hero-stage{display:flex;flex-direction:column;height:auto;padding:92px 20px 48px}
 .is-m .hx-eyebrow,.is-m .hero-title,.is-m .hx-sub,.is-m .hx-ctas,.is-m .hx-card{position:static}
 .is-m .hx-eyebrow{order:1}
